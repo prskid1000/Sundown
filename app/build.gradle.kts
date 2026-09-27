@@ -42,6 +42,12 @@ android {
     }
 
     buildTypes {
+        // Debug is signed with the release key too, so a debug build installs
+        // over the released APK (and back) without an uninstall that would
+        // take every rule and the log with it.
+        debug {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

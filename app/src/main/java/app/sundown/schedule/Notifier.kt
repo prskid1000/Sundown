@@ -118,8 +118,8 @@ object Notifier {
     fun describe(e: LogEntry): String = when (e.outcome) {
         Outcome.ForceStopped -> "force stopped"
         Outcome.NotRunning -> "wasn't running"
-        Outcome.ScreenClosed -> "screen closed"
-        Outcome.ScreenNotOpen -> "screen wasn't open"
+        Outcome.ScreenClosed -> "activity closed"
+        Outcome.ScreenNotOpen -> "activity wasn't open"
         Outcome.BackgroundKilled -> "background only"
         Outcome.Deferred -> "waiting for unlock"
         Outcome.Failed -> "failed"

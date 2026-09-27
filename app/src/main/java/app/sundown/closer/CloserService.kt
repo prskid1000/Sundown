@@ -229,7 +229,18 @@ class CloserService : AccessibilityService() {
             }
             if (!loaded) return fallback(job, t, "Couldn't find the \"${strings.forceStop}\" button")
 
-            if (!isLive(button!!)) return Closer.entry(job, t, Outcome.NotRunning)
+            // Android 17's App info draws Force stop greyed out first and only
+            // enables it once it has asked whether the app is running. Judged
+            // on the first frame, a music player mid-song read as "not
+            // running" and was left playing. Only a button still grey after
+            // that check has had time to answer means the app is stopped.
+            if (!isLive(button!!)) {
+                val woke = waitFor(3000) {
+                    button = rootsOf(settingsPkg).firstNotNullOfOrNull { findButton(it, strings.forceStop) }
+                    button?.let { isLive(it) } == true
+                }
+                if (!woke) return Closer.entry(job, t, Outcome.NotRunning)
+            }
 
             clickable(button!!).performAction(AccessibilityNodeInfo.ACTION_CLICK)
 

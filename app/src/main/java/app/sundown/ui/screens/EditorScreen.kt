@@ -129,12 +129,12 @@ fun EditorScreen(
 
             SectionKicker("CLOSE")
             if (draft.targets.isEmpty()) {
-                NHelp("Choose the apps to force-stop, or a single screen to back out of.")
+                NHelp("Choose the apps to force-stop, or a single activity to back out of.")
             }
             draft.targets.forEach { t -> TargetRow(t, onRemove = { vm.toggleTarget(t) }) }
             Row(horizontalArrangement = Arrangement.spacedBy(Space.s2)) {
                 NButton("Apps", onClick = onPickApps, leadingIcon = NIcons.Plus)
-                NButton("A screen", onClick = onPickScreens, leadingIcon = NIcons.Plus)
+                NButton("Activity", onClick = onPickScreens, leadingIcon = NIcons.Plus)
             }
 
             SectionKicker("BEFORE CLOSING")
@@ -263,7 +263,7 @@ private fun TargetRow(t: Target, onRemove: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(t.label, style = NocturneType.CardTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    if (t.isScreen) "screen · ${t.screenName}" else "whole app · force stop",
+                    if (t.isScreen) "activity · ${t.screenName}" else "whole app · force stop",
                     style = NocturneType.MonoXs,
                     color = if (t.isScreen) NocturneColors.Accent400 else NocturneColors.TextMuted,
                     maxLines = 1,

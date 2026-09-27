@@ -101,7 +101,7 @@ fun SetupScreen(bottomBar: @Composable () -> Unit) {
                     else -> "Off — nothing can be closed"
                 },
                 body = "Android gives apps no way to stop another app. Sundown opens its App info page and presses Force stop, " +
-                    "exactly as you would, and presses Back to leave a screen you chose. Turn on \"Sundown closer\".",
+                    "exactly as you would, and presses Back to leave an activity you chose. Turn on \"Sundown closer\".",
             ) {
                 NButton("Open accessibility settings", onClick = { open(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }, style = NButtonStyle.Primary)
                 if (!a11y) {

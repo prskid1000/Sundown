@@ -252,7 +252,7 @@ private fun ScheduleCard(rule: Rule, now: Long, onToggle: (Boolean) -> Unit, onE
             Spacer(Modifier.weight(1f))
             val tags = buildList {
                 if (rule.warnMinutes > 0) add("warns ${rule.warnMinutes}m")
-                if (rule.targets.any { it.isScreen }) add("${rule.targets.count { it.isScreen }} screen")
+                if (rule.targets.any { it.isScreen }) add("${rule.targets.count { it.isScreen }} activity")
                 if (rule.snoozeFrom != null && rule.snoozeTo == null && rule.snoozeFrom > now) add("skipping next")
                 if (rule.snoozeTo != null && rule.snoozeTo > now) add("moved to ${formatInstantTime(rule.snoozeTo)}")
             }

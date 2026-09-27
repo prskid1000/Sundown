@@ -1,6 +1,6 @@
 # Sundown
 
-Closes apps, or a particular screen of an app, at a time you set or when a timer
+Closes apps, or a particular activity of an app, at a time you set or when a timer
 runs out. Android, sideloaded, Kotlin + Compose, in the Nocturne design carried
 over from On Device AI.
 
@@ -29,8 +29,8 @@ service does what a person would:
 
 A dark cover hides the Settings pages while this happens (it can be switched
 off in Setup). The button labels are read from the Settings app's own resources,
-so this works in any language. A **screen** target (one activity) is closed with
-Back instead, and only if it is on top at the time: a screen can't be removed
+so this works in any language. An **activity** target is closed with
+Back instead, and only if it is on top at the time: an activity can't be removed
 from an app that keeps running.
 
 **When it can't:**

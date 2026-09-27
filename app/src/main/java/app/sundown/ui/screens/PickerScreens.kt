@@ -117,25 +117,25 @@ fun ScreenPickerScreen(vm: MainViewModel, onBack: () -> Unit) {
         .groupBy { it.packageName }
 
     PhoneScaffold(
-        toolbar = { PushToolbar("Choose a screen", onBack = onBack, subtitle = "${chosen.size} chosen") },
+        toolbar = { PushToolbar("Choose an activity", onBack = onBack, subtitle = "${chosen.size} chosen") },
     ) {
         NHelp(
-            if (connected) "Screens you have opened recently. Open the one you want in its app, come back, and it will be here."
-            else "Turn on Sundown's accessibility service first — that is how it learns which screens exist.",
+            if (connected) "Activities you have opened recently. Open the one you want in its app, come back, and it will be here."
+            else "Turn on Sundown's accessibility service first — that is how it learns which activities exist.",
             modifier = Modifier.padding(top = Space.s3, bottom = Space.s2),
         )
         NInput(
             value = query,
             onValueChange = { query = it },
-            placeholder = "Search apps or screens",
+            placeholder = "Search apps or activities",
             modifier = Modifier.fillMaxWidth().padding(bottom = Space.s3),
             trailing = { Icon(NIcons.Search, null, tint = NocturneColors.TextMuted, modifier = Modifier.size(16.dp)) },
         )
         if (query.isNotBlank() && shown.isEmpty()) {
-            NHelp("No screen matches \"$query\".")
+            NHelp("No activity matches \"$query\".")
         }
         NHelp(
-            "A screen is closed with Back only if it is on top at closing time. Many apps draw Shorts, Reels and the like inside one screen; those can't be told apart, so choose the whole app instead.",
+            "An activity is closed with Back only if it is on top at closing time. Many apps draw Shorts, Reels and the like inside one activity; those can't be told apart, so choose the whole app instead.",
             modifier = Modifier.padding(bottom = Space.s3),
         )
         LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
