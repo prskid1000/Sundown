@@ -26,8 +26,8 @@ android {
         targetSdk = 36
         // Bump both on every release; Android refuses an update whose
         // versionCode is not higher than the installed one.
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
     }
 
     signingConfigs {
