@@ -64,6 +64,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        aidl = true   // for the Warden broker interface (force-stop while locked)
     }
 }
 

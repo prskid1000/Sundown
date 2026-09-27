@@ -34,17 +34,40 @@ object Closer {
     fun submit(context: Context, name: String, targets: List<Target>, pauseAudio: Boolean) {
         if (targets.isEmpty()) return
         val job = CloseJob(name, targets, pauseAudio)
+
+        // Preferred path: the Warden broker force-stops each target regardless of
+        // lock state, foreground, or a foreground service — the exact cases the
+        // accessibility trick can't handle. Runs off the caller thread because
+        // reaching the broker and running `am` takes a moment.
+        Graph.scope.launch {
+            if (WardenBridge.available(context)) {
+                if (pauseAudio) pauseAudio(context)
+                val entries = targets.map { t ->
+                    when (WardenBridge.forceStop(context, t.packageName)) {
+                        WardenBridge.Result.CLOSED ->
+                            entry(job, t, if (t.isScreen) Outcome.ScreenClosed else Outcome.ForceStopped, "Warden")
+                        WardenBridge.Result.DENIED ->
+                            entry(job, t, Outcome.Failed, "Grant Sundown in the Warden app")
+                        else ->
+                            entry(job, t, Outcome.Failed, "Warden force-stop failed")
+                    }
+                }
+                Graph.db.log().insert(entries)
+                return@launch
+            }
+            submitFallback(context, job)
+        }
+    }
+
+    /** The original accessibility / background-kill path, when Warden isn't available. */
+    private fun submitFallback(context: Context, job: CloseJob) {
         val service = CloserService.instance
         if (service != null) {
             service.enqueue(job)
             return
         }
-
-        // No service: nothing can press Force stop, and nothing can see which
-        // screen is on top. Kill what is in the background, and report that
-        // this is all that happened rather than calling it closed.
-        if (pauseAudio) pauseAudio(context)
-        val entries = targets.map { t ->
+        if (job.pauseAudio) pauseAudio(context)
+        val entries = job.targets.map { t ->
             if (t.isScreen) {
                 entry(job, t, Outcome.Failed, "Accessibility service is off")
             } else {
@@ -53,7 +76,7 @@ object Closer {
             }
         }
         Graph.scope.launch { Graph.db.log().insert(entries) }
-        Notifier.accessibilityOff(context, targets.joinToString { it.screenName ?: it.label })
+        Notifier.accessibilityOff(context, job.targets.joinToString { it.screenName ?: it.label })
     }
 
     fun killBackground(context: Context, pkg: String) {

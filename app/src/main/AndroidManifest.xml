@@ -13,6 +13,9 @@
     <!-- Package visibility: launchable apps for the picker, and the App info
          screen we drive to press Force stop. QUERY_ALL_PACKAGES is not needed. -->
     <queries>
+        <!-- The Warden broker app, so we can reach its provider to force-stop
+             targets even when the phone is locked. -->
+        <package android:name="app.warden" />
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
