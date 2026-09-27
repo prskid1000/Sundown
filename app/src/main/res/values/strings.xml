@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sundown</string>
+    <string name="accessibility_label">Sundown closer</string>
+    <string name="accessibility_summary">Closes the apps and screens you chose, at the time you chose.</string>
+    <string name="accessibility_description">Sundown uses this to see which app and screen are open, and to close apps at the times you set: it presses Back on a screen you picked, and presses Force stop on an app\'s App info page. It does not read, store or send what is on your screen.</string>
+</resources>

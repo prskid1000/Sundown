@@ -1,0 +1,332 @@
+package app.sundown.ui.components
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.runtime.getValue
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import app.sundown.ui.theme.Elevation
+import app.sundown.ui.theme.NocturneColors
+import app.sundown.ui.theme.NocturneShadow
+import app.sundown.ui.theme.NocturneType
+import app.sundown.ui.theme.Radius
+import app.sundown.ui.theme.Space
+import app.sundown.ui.theme.elev
+import app.sundown.ui.theme.fadingRule
+import app.sundown.ui.theme.ring
+import app.sundown.ui.theme.ruleBelow
+
+/** `.card` — a surface-filled content card at `--space-3` padding with `--space-2` between children. */
+@Composable
+fun NCard(
+    modifier: Modifier = Modifier,
+    elevation: NocturneShadow? = Elevation.sm,
+    ring: Color? = null,
+    fill: Color = NocturneColors.Surface,
+    shape: Shape = Radius.Md,
+    padding: PaddingValues = PaddingValues(Space.s3),
+    gap: Dp = Space.s2,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier
+            // A card that gains a line — a refusal, a reason, a stage — should
+            // grow into it rather than snap, because the snap reads as the
+            // layout breaking rather than as new information arriving.
+            .animateContentSize(Motion.resize)
+            .background(fill, shape)
+            .then(
+                when {
+                    ring != null -> Modifier.ring(ring, shape)
+                    elevation != null -> Modifier.elev(elevation, shape)
+                    else -> Modifier
+                },
+            )
+            .padding(padding),
+        verticalArrangement = Arrangement.spacedBy(gap),
+        content = content,
+    )
+}
+
+/** `.card-kicker` — 10px uppercase accent, letter-spaced. */
+@Composable
+fun NCardKicker(text: String, modifier: Modifier = Modifier) {
+    Text(text.uppercase(), style = NocturneType.Kicker, color = NocturneColors.Accent, modifier = modifier)
+}
+
+/** `.card-title`. */
+@Composable
+fun NCardTitle(text: String, modifier: Modifier = Modifier, style: TextStyle = NocturneType.CardTitle) {
+    Text(text, style = style, modifier = modifier)
+}
+
+/** `.card-body` — 13px at 80% opacity. */
+@Composable
+fun NCardBody(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = NocturneType.CardBody, color = NocturneColors.Text.copy(alpha = 0.8f), modifier = modifier)
+}
+
+/** `.card-meta` — 11px at 50% text, 6px gaps. */
+@Composable
+fun NCardMeta(
+    modifier: Modifier = Modifier,
+    gap: Dp = 6.dp,
+    content: @Composable RowScope.() -> Unit,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(gap),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
+}
+
+@Composable
+fun NMetaText(text: String, modifier: Modifier = Modifier, color: Color = NocturneColors.TextMeta) {
+    Text(text, style = NocturneType.Meta, color = color, modifier = modifier)
+}
+
+/** The mono section rule that heads every group on every screen. */
+@Composable
+fun SectionKicker(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = NocturneColors.Neutral500,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(text.uppercase(), style = NocturneType.SectionKicker, color = color, modifier = Modifier.weight(1f))
+        if (trailing != null) trailing()
+    }
+}
+
+/** The recurring 10.5px muted footnote under a control or section. */
+@Composable
+fun NHelp(text: String, modifier: Modifier = Modifier, color: Color = NocturneColors.TextMuted) {
+    Text(text, style = NocturneType.Help, color = color, modifier = modifier)
+}
+
+/** `.hr` — the Nocturne signature rule, fading to transparent over 48px an end. */
+@Composable
+fun NHr(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().height(1.dp).fadingRule())
+}
+
+/** An in-control separator under a row: solid, per the readme's rule. */
+@Composable
+fun NRowRule(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().height(1.dp).background(NocturneColors.Divider))
+}
+
+/** A list row that carries its own bottom rule — the shape used by the parameter list, the transcript segments and the companions list. */
+@Composable
+fun NRuledRow(
+    modifier: Modifier = Modifier,
+    verticalPadding: Dp = 11.dp,
+    ruleColor: Color = NocturneColors.Divider,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .ruleBelow(ruleColor)
+            .padding(vertical = verticalPadding),
+        content = content,
+    )
+}
+
+/** `.table` — themed header and row rules. */
+@Composable
+fun NTable(
+    modifier: Modifier = Modifier,
+    header: (@Composable RowScope.() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(modifier.fillMaxWidth()) {
+        if (header != null) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .fadingRule(NocturneColors.Divider)
+                    .padding(Space.s2),
+                verticalAlignment = Alignment.CenterVertically,
+                content = header,
+            )
+        }
+        content()
+    }
+}
+
+@Composable
+fun NTableRow(
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .fadingRule(NocturneColors.TableRowRule)
+            .padding(Space.s2),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
+}
+
+@Composable
+fun NTableHeaderCell(
+    text: String,
+    modifier: Modifier = Modifier,
+    align: TextAlign = TextAlign.Start,
+) {
+    Text(
+        text.uppercase(),
+        style = NocturneType.Meta.copy(letterSpacing = 0.08.em, textAlign = align),
+        color = NocturneColors.TextTableHead,
+        modifier = modifier,
+    )
+}
+
+/** A modal: the card, and nothing behind it. */
+@Composable
+fun NDialog(
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        // DialogProperties has no switch for the dim, so it is cleared on the
+        // window Compose put this content in.
+        val view = androidx.compose.ui.platform.LocalView.current
+        androidx.compose.runtime.SideEffect {
+            (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+                ?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        }
+        Box(
+            Modifier
+                .fillMaxSize()
+                .nClickableFlat(onClick = onDismissRequest)
+                .padding(Space.s4),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = modifier
+                    .widthIn(max = 440.dp)
+                    .fillMaxWidth()
+                    .background(NocturneColors.Surface, Radius.Lg)
+                    // The card's own edge, since nothing behind it is dimmed to
+                    // separate the two any more.
+                    .ring(NocturneColors.Divider, Radius.Lg)
+                    .elev(Elevation.lg, Radius.Lg)
+                    .nClickableFlat { /* swallow: taps inside must not dismiss */ }
+                    .padding(Space.s4),
+                verticalArrangement = Arrangement.spacedBy(Space.s3),
+                content = content,
+            )
+        }
+    }
+}
+
+@Composable
+fun NDialogTitle(text: String) {
+    Text(text, style = NocturneType.H4)
+}
+
+@Composable
+fun NDialogBody(text: String) {
+    Text(text, style = NocturneType.Input, color = NocturneColors.Text.copy(alpha = 0.85f))
+}
+
+@Composable
+fun NDialogActions(content: @Composable RowScope.() -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = Space.s2),
+        horizontalArrangement = Arrangement.spacedBy(Space.s2, Alignment.End),
+        content = content,
+    )
+}
+
+/** A thin progress bar. */
+@Composable
+fun NProgressBar(
+    fraction: Float,
+    modifier: Modifier = Modifier,
+    height: Dp = 5.dp,
+    fill: Color = NocturneColors.Accent500,
+    track: Color = NocturneColors.Neutral900,
+) {
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(track, Radius.Sm),
+    ) {
+        // The number behind this arrives in jumps — a download's bytes, a
+        // sampler's steps, polled a few times a second. Animating the bar
+        // rather than the number keeps the reading honest and the movement
+        // continuous.
+        val width by animateFloatAsState(
+            fraction.coerceIn(0f, 1f),
+            Motion.value,
+            label = "progress",
+        )
+        Box(
+            Modifier
+                .fillMaxWidth(width)
+                .height(height)
+                .background(fill, Radius.Sm),
+        )
+    }
+}
+
+/** The multi-segment storage meter on the Models screen — one strip, several ramp steps, no gaps. */
+@Composable
+fun NStackedBar(
+    segments: List<Pair<Float, Color>>,
+    modifier: Modifier = Modifier,
+    height: Dp = 7.dp,
+) {
+    val used = segments.sumOf { it.first.toDouble() }.toFloat().coerceIn(0f, 1f)
+    Row(
+        modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(Radius.Sm)
+            .background(NocturneColors.Neutral900),
+    ) {
+        segments.forEach { (weight, color) ->
+            if (weight > 0f) Box(Modifier.weight(weight).fillMaxHeight().background(color))
+        }
+        if (used < 1f) Box(Modifier.weight(1f - used).fillMaxHeight())
+    }
+}

@@ -1,0 +1,609 @@
+package app.sundown.ui.components
+import androidx.compose.animation.animateColorAsState
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import app.sundown.ui.theme.NocturneColors
+import app.sundown.ui.theme.NocturneType
+import app.sundown.ui.theme.Radius
+import app.sundown.ui.theme.ring
+
+/** `.field > label` — 12px at 70% text, 5px below. */
+@Composable
+fun NFieldLabel(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = NocturneType.FieldLabel, color = NocturneColors.TextLabel, modifier = modifier.padding(bottom = 5.dp))
+}
+
+/** `.input`. */
+@Composable
+fun NInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String? = null,
+    enabled: Boolean = true,
+    singleLine: Boolean = true,
+    minHeight: Dp = 36.dp,
+    textStyle: TextStyle = NocturneType.Input,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    /**
+     * JSON, Jinja, JavaScript — anything the IME must keep its hands off.
+     *
+     * A phone keyboard defaults to autocorrect and suggestions, and applies
+     * them to `{"enable_thinking": false}` as readily as to prose: keys get
+     * capitalised, quotes get replaced with typographic ones the parser then
+     * rejects, and a word the dictionary recognises is swapped for its
+     * neighbour. That is not a field being fussy, it is a field being
+     * corrected into invalidity while you watch.
+     */
+    code: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+
+    // The caret lives here, not inside BasicTextField's String overload.
+    //
+    // That overload rebuilds its selection from whatever the caller hands back,
+    // and many of this app's fields hand it back through a StateFlow — a round
+    // trip that lands a frame later, and in the case of a JSON field through a
+    // parse and re-serialise that returns different text than was typed. The
+    // caret jumps to the end between keystrokes and fast typing drops or
+    // reorders characters. Holding the value here means the ordinary case,
+    // where the text comes back unchanged, moves nothing at all.
+    var field by remember { mutableStateOf(TextFieldValue(value)) }
+    // What was last sent up. A value equal to this is our own echo returning
+    // and must leave the caret alone; anything else is a real external change —
+    // a reset, a model reload, a caller that rewrote the text — and replaces
+    // the contents outright.
+    var emitted by remember { mutableStateOf(value) }
+    if (value != emitted) {
+        field = TextFieldValue(value, TextRange(value.length))
+        emitted = value
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = minHeight)
+            .background(NocturneColors.Surface, Radius.Md)
+            .ring(if (focused) NocturneColors.Accent else NocturneColors.Divider, Radius.Md)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.weight(1f)) {
+            // Asked of the field rather than of the hoisted value, so the
+            // placeholder goes on the first keystroke rather than on the echo.
+            if (field.text.isEmpty() && placeholder != null) {
+                Text(placeholder, style = textStyle, color = NocturneColors.TextMuted)
+            }
+            BasicTextField(
+                value = field,
+                onValueChange = {
+                    field = it
+                    if (it.text != emitted) {
+                        emitted = it.text
+                        onValueChange(it.text)
+                    }
+                },
+                enabled = enabled,
+                singleLine = singleLine,
+                textStyle = textStyle.copy(color = NocturneColors.Text),
+                cursorBrush = SolidColor(NocturneColors.Accent),
+                interactionSource = interaction,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    // Ascii rather than Text: it is the request that stops most
+                    // IMEs offering a smart-quote key in the first place.
+                    keyboardType = if (code) KeyboardType.Ascii else keyboardType,
+                    autoCorrect = !code,
+                    capitalization = KeyboardCapitalization.None,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (trailing != null) trailing()
+    }
+}
+
+/** `textarea.input` — `min-height: 90px`, vertically resizable in CSS; here a floor. */
+@Composable
+fun NTextArea(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    minHeight: Dp = 90.dp,
+    placeholder: String? = null,
+    textStyle: TextStyle = NocturneType.Input,
+    /** See [NInput] — off for prose, on for anything with syntax. */
+    code: Boolean = false,
+) = NInput(
+    value = value,
+    onValueChange = onValueChange,
+    modifier = modifier,
+    placeholder = placeholder,
+    singleLine = false,
+    minHeight = minHeight,
+    textStyle = textStyle,
+    code = code,
+)
+
+/** `.field` — label above input. */
+@Composable
+fun NField(
+    label: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Column(modifier) {
+        NFieldLabel(label)
+        content()
+    }
+}
+
+@Composable
+fun NRadio(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** A choice that exists but cannot be taken here — shown, dimmed, inert. */
+    enabled: Boolean = true,
+) {
+    Row(
+        modifier = modifier.selectable(selected = selected, enabled = enabled, onClick = onSelect),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(16.dp)
+                .background(if (selected) NocturneColors.Accent else Color.Transparent, CircleShape)
+                .ring(if (selected) NocturneColors.Accent else NocturneColors.Divider, CircleShape, 1.5.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) Box(Modifier.size(8.dp).background(NocturneColors.Bg, CircleShape))
+        }
+        Text(
+            label,
+            style = NocturneType.Input,
+            color = if (enabled) NocturneColors.Text else NocturneColors.TextMuted,
+        )
+    }
+}
+
+/** `.seg` + `.seg-opt` — a joined segmented control. */
+@Composable
+fun NSeg(
+    options: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    textStyle: TextStyle = NocturneType.Input.copy(fontSize = 13.sp),
+    enabled: (Int) -> Boolean = { true },
+) {
+    Row(
+        modifier = modifier
+            .clip(Radius.Md)
+            .ring(NocturneColors.Divider, Radius.Md),
+    ) {
+        options.forEachIndexed { i, label ->
+            val selected = i == selectedIndex
+            val usable = enabled(i)
+            // The selected ring has to follow the container's own corners at the two ends.
+            val segmentShape = RoundedCornerShape(
+                topStart = if (i == 0) Radius.md else 0.dp,
+                bottomStart = if (i == 0) Radius.md else 0.dp,
+                topEnd = if (i == options.lastIndex) Radius.md else 0.dp,
+                bottomEnd = if (i == options.lastIndex) Radius.md else 0.dp,
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .then(
+                        if (i > 0) Modifier.drawLeftDivider() else Modifier,
+                    )
+                    .then(if (selected) Modifier.ring(NocturneColors.Accent, segmentShape) else Modifier)
+                    .selectable(selected = selected, enabled = usable, onClick = { onSelect(i) })
+                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    style = textStyle,
+                    color = when {
+                        !usable -> NocturneColors.TextMuted
+                        selected -> NocturneColors.Accent
+                        else -> NocturneColors.Text
+                    },
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+/** `.seg-opt + .seg-opt { border-left: 1px solid var(--color-divider) }`. */
+private fun Modifier.drawLeftDivider(): Modifier = drawBehind {
+    drawLine(
+        color = NocturneColors.Divider,
+        start = Offset(0.5f, 0f),
+        end = Offset(0.5f, size.height),
+        strokeWidth = 1f,
+    )
+}
+
+/** The range control. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun NSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    modifier: Modifier = Modifier,
+    steps: Int = 0,
+    enabled: Boolean = true,
+    height: Dp = 22.dp,
+    onValueChangeFinished: (() -> Unit)? = null,
+) {
+    androidx.compose.material3.Slider(
+        value = value.coerceIn(valueRange.start, valueRange.endInclusive),
+        onValueChange = onValueChange,
+        onValueChangeFinished = onValueChangeFinished,
+        valueRange = valueRange,
+        steps = steps,
+        enabled = enabled,
+        modifier = modifier.fillMaxWidth().height(height),
+        colors = androidx.compose.material3.SliderDefaults.colors(
+            thumbColor = NocturneColors.Accent,
+            activeTrackColor = NocturneColors.Accent,
+            inactiveTrackColor = NocturneColors.Neutral800,
+            activeTickColor = Color.Transparent,
+            inactiveTickColor = Color.Transparent,
+            disabledThumbColor = NocturneColors.Neutral600,
+            disabledActiveTrackColor = NocturneColors.Neutral700,
+            disabledInactiveTrackColor = NocturneColors.Neutral900,
+        ),
+        thumb = {
+            Box(
+                Modifier
+                    .size(16.dp)
+                    .background(if (enabled) NocturneColors.Accent else NocturneColors.Neutral600, CircleShape),
+            )
+        },
+        track = { state ->
+            val fraction = if (state.valueRange.endInclusive > state.valueRange.start) {
+                (state.value - state.valueRange.start) /
+                    (state.valueRange.endInclusive - state.valueRange.start)
+            } else {
+                0f
+            }
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(NocturneColors.Neutral800, CircleShape),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                        .height(4.dp)
+                        .background(
+                            if (enabled) NocturneColors.Accent else NocturneColors.Neutral700,
+                            CircleShape,
+                        ),
+                )
+            }
+        },
+    )
+}
+
+/**
+ * The range control with a nudge on either side.
+ *
+ * A slider on a phone is about 500 px of track. Spread sixty whole numbers
+ * across it and each one is eight pixels wide, which is narrower than the part
+ * of a fingertip the touchscreen resolves — so "steps = 4" is a target that
+ * cannot be hit, and the neighbour hit instead is the value that runs. Every
+ * integer setting in this app had that problem, and the ones worth reaching are
+ * at the low end of the track where the pixels are scarcest.
+ *
+ * The two buttons move exactly one [step], so every value is reachable by
+ * tapping even when none of them is reachable by dragging. The drag itself is
+ * snapped to the same grid, so a width of 320 is 320 and not the 319 that
+ * float arithmetic and a truncating `toInt()` used to produce — a size that is
+ * not a multiple of 64 is one the VAE cannot decode.
+ */
+@Composable
+fun NNudgeSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    step: Float,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val snap = { raw: Float -> snapToStep(raw, valueRange, step) }
+    val current = snap(value)
+    Row(
+        modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        NNudge("−", enabled && current > valueRange.start) {
+            onValueChange(snap(current - step))
+        }
+        NSlider(
+            value = current,
+            onValueChange = { onValueChange(snap(it)) },
+            valueRange = valueRange,
+            steps = tickCount(valueRange, step),
+            enabled = enabled,
+            modifier = Modifier.weight(1f),
+        )
+        NNudge("+", enabled && current < valueRange.endInclusive) {
+            onValueChange(snap(current + step))
+        }
+    }
+}
+
+/** The nearest value on the grid, clamped to the range. */
+fun snapToStep(raw: Float, valueRange: ClosedFloatingPointRange<Float>, step: Float): Float {
+    val clamped = raw.coerceIn(valueRange.start, valueRange.endInclusive)
+    if (step <= 0f) return clamped
+    val ticks = Math.round((clamped - valueRange.start) / step)
+    return (valueRange.start + ticks * step).coerceIn(valueRange.start, valueRange.endInclusive)
+}
+
+/**
+ * Material's `steps` — ticks strictly between the ends, so a grid of N values
+ * is N-2. Capped because a tick per pixel is a tick per nothing, and Compose
+ * allocates the list.
+ */
+fun tickCount(valueRange: ClosedFloatingPointRange<Float>, step: Float): Int {
+    if (step <= 0f) return 0
+    val span = valueRange.endInclusive - valueRange.start
+    if (span <= 0f) return 0
+    return (Math.round(span / step) - 1).coerceIn(0, 200)
+}
+
+@Composable
+private fun NNudge(glyph: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(30.dp)
+            .ring(if (enabled) NocturneColors.Divider else NocturneColors.Neutral800, Radius.Sm)
+            .then(if (enabled) Modifier.nClickableFlat(onClick = onClick) else Modifier),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            glyph,
+            style = NocturneType.Row,
+            color = if (enabled) NocturneColors.Accent else NocturneColors.Neutral600,
+        )
+    }
+}
+
+/** The pill toggle from S8 and S11 — 40×23 track, 17px knob, divider hairline. */
+@Composable
+fun NSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val offset by animateFloatAsState(
+        if (checked) 1f else 0f,
+        app.sundown.ui.components.Motion.press,
+        label = "switch",
+    )
+    val trackColour by animateColorAsState(
+        if (checked) NocturneColors.Accent700 else NocturneColors.Neutral900,
+        app.sundown.ui.components.Motion.colour,
+        label = "track",
+    )
+    val thumbColour by animateColorAsState(
+        if (checked) NocturneColors.Accent200 else NocturneColors.Neutral600,
+        app.sundown.ui.components.Motion.colour,
+        label = "thumb",
+    )
+    Box(
+        modifier = modifier
+            .width(40.dp)
+            .height(23.dp)
+            .background(trackColour, CircleShape)
+            .ring(NocturneColors.Divider, CircleShape)
+            .nClickableFlat(enabled) { onCheckedChange(!checked) }
+            .padding(2.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Box(
+            Modifier
+                .offset(x = (offset * 17).dp)
+                .size(17.dp)
+                .background(
+                    thumbColour,
+                    CircleShape,
+                ),
+        )
+    }
+}
+
+/** The chip editor used for `stop`, `dry_sequence_breakers` and the manifest's `string[]` type. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+fun NChipRow(
+    chips: List<String>,
+    onRemove: ((Int) -> Unit)? = null,
+    onAdd: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.layout.FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        chips.forEachIndexed { i, chip ->
+            Box(
+                Modifier
+                    .background(NocturneColors.Neutral900, Radius.Sm)
+                    .ring(NocturneColors.Divider, Radius.Sm)
+                    .then(if (onRemove != null) Modifier.nClickableFlat { onRemove(i) } else Modifier)
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+            ) {
+                Text(chip, style = NocturneType.MonoSm.copy(fontWeight = FontWeight.Medium))
+            }
+        }
+        if (onAdd != null) {
+            Box(
+                Modifier
+                    .ring(NocturneColors.Accent700, Radius.Sm)
+                    .nClickableFlat(onClick = onAdd)
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+            ) {
+                Text("+ add", style = NocturneType.Meta, color = NocturneColors.Accent)
+            }
+        }
+    }
+}
+
+/** The enum picker from S8: a wrapped row of mono option chips. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+fun NEnumRow(
+    options: List<String>,
+    selected: String?,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.layout.FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        options.forEach { opt ->
+            val isSelected = opt == selected
+            Box(
+                Modifier
+                    .background(if (isSelected) NocturneColors.Accent900 else Color.Transparent, Radius.Sm)
+                    .ring(if (isSelected) NocturneColors.Accent else NocturneColors.Divider, Radius.Sm)
+                    .selectable(selected = isSelected, onClick = { onSelect(opt) })
+                    .padding(horizontal = 9.dp, vertical = 5.dp),
+            ) {
+                Text(
+                    opt,
+                    style = NocturneType.MonoSm.copy(fontWeight = FontWeight.Medium),
+                    color = if (isSelected) NocturneColors.Accent200 else NocturneColors.Text,
+                )
+            }
+        }
+    }
+}
+
+/** A dropdown, for when the options are too long or too many to lay out as pills. */
+@Composable
+fun NDropdown(
+    options: List<String>,
+    selected: String?,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "Choose…",
+    minHeight: androidx.compose.ui.unit.Dp = 42.dp,
+) {
+    val expanded = remember { androidx.compose.runtime.mutableStateOf(false) }
+
+    Box(modifier) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = minHeight)
+                .background(NocturneColors.Surface, Radius.Md)
+                .ring(
+                    if (expanded.value) NocturneColors.Accent else NocturneColors.Divider,
+                    Radius.Md,
+                )
+                .nClickableFlat { expanded.value = true }
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                selected ?: placeholder,
+                style = NocturneType.MonoSm,
+                color = if (selected == null) NocturneColors.TextMuted else NocturneColors.Text,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            androidx.compose.material3.Icon(
+                app.sundown.ui.theme.NIcons.ChevronDown,
+                contentDescription = null,
+                tint = NocturneColors.TextMuted,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+
+        androidx.compose.material3.DropdownMenu(
+            expanded = expanded.value,
+            onDismissRequest = { expanded.value = false },
+            // The menu is its own surface, outside the app's, so it has to be
+            // told the palette or it arrives in Material's default light grey.
+            containerColor = NocturneColors.Neutral900,
+        ) {
+            options.forEach { option ->
+                val isSelected = option == selected
+                androidx.compose.material3.DropdownMenuItem(
+                    text = {
+                        Text(
+                            option,
+                            style = NocturneType.MonoSm,
+                            color = if (isSelected) NocturneColors.Accent200 else NocturneColors.Text,
+                        )
+                    },
+                    onClick = {
+                        expanded.value = false
+                        if (!isSelected) onSelect(option)
+                    },
+                )
+            }
+        }
+    }
+}

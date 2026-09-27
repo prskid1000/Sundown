@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  canRetrieveWindowContent is what lets the service read and press the Force
+  stop button; flagRetrieveInteractiveWindows lets it find the Settings window
+  while its own "closing apps" cover sits on top of it.
+
+  Content and window-list changes are subscribed to although the service
+  ignores them: the service's node cache is only invalidated by events it is
+  sent, so without them every read of the App info page returned its first,
+  still-empty frame, and Force stop was never found.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows|flagIncludeNotImportantViews"
+    android:canRetrieveWindowContent="true"
+    android:notificationTimeout="100"
+    android:description="@string/accessibility_description"
+    android:summary="@string/accessibility_summary" />
