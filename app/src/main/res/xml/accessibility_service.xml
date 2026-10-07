@@ -4,10 +4,11 @@
   stop button; flagRetrieveInteractiveWindows lets it find the Settings window
   while its own "closing apps" cover sits on top of it.
 
-  Content and window-list changes are subscribed to although the service
-  ignores them: the service's node cache is only invalidated by events it is
-  sent, so without them every read of the App info page returned its first,
-  still-empty frame, and Force stop was never found.
+  Content and window-list changes are what the service waits on while driving
+  Settings: each one re-checks the page. They also keep its node cache fresh;
+  the cache is only invalidated by events the service is sent, so without them
+  every read of the App info page returned its first, still-empty frame, and
+  Force stop was never found.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged"

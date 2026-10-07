@@ -21,13 +21,23 @@ object WardenBridge {
 
     enum class Result { CLOSED, DENIED, UNAVAILABLE, FAILED }
 
-    private fun broker(context: Context): IWarden? = runCatching {
-        val uri = Uri.parse("content://$AUTHORITY")
-        val reply = context.contentResolver.call(uri, "getBinder", null, null) ?: return null
-        val binder = reply.getBinder("binder") ?: return null
-        if (!binder.isBinderAlive) return null
-        IWarden.Stub.asInterface(binder)
-    }.getOrNull()
+    // The broker binder, held until its process dies. Warden's provider answers
+    // as soon as it has the binder (waiting for the broker's handshake if Warden
+    // itself had to be started), so a cold lookup costs one round trip.
+    @Volatile private var cached: IWarden? = null
+
+    private fun broker(context: Context): IWarden? {
+        cached?.takeIf { it.asBinder().isBinderAlive }?.let { return it }
+        return runCatching {
+            val uri = Uri.parse("content://$AUTHORITY")
+            val reply = context.contentResolver.call(uri, "getBinder", null, null) ?: return null
+            val binder = reply.getBinder("binder") ?: return null
+            val svc = IWarden.Stub.asInterface(binder)
+            binder.linkToDeath({ if (cached?.asBinder() === binder) cached = null }, 0)
+            cached = svc
+            svc
+        }.getOrNull()
+    }
 
     /** True when the broker is reachable (installed + running). */
     fun available(context: Context): Boolean =

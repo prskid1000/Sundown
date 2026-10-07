@@ -30,11 +30,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Closes apps the only way Android leaves open to a third-party app: by
@@ -73,6 +73,12 @@ class CloserService : AccessibilityService() {
     private var topPackage: String? = null
     private var topActivity: String? = null
 
+    /**
+     * Signalled by every accessibility event. Conflated, so a change that lands
+     * between a check and the wait that follows it is still seen.
+     */
+    private val changed = Channel<Unit>(Channel.CONFLATED)
+
     private var cover: View? = null
     private val activityCache = HashMap<String, Boolean>()
 
@@ -100,6 +106,13 @@ class CloserService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
+        track(event)
+        // After tracking: on Main.immediate the waiter can resume inside this
+        // call, and it must see the top screen this event reported.
+        changed.trySend(Unit)
+    }
+
+    private fun track(event: AccessibilityEvent) {
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
         val cls = event.className?.toString() ?: return
@@ -163,7 +176,7 @@ class CloserService : AccessibilityService() {
         if (apps.isNotEmpty()) {
             if (apps.any { it.packageName == topPackage }) {
                 performGlobalAction(GLOBAL_ACTION_HOME)
-                delay(400)
+                waitFor(1000) { apps.none { it.packageName == topPackage } }
             }
             showCover(apps.joinToString { it.label })
             try {
@@ -335,12 +348,18 @@ class CloserService : AccessibilityService() {
         return n ?: node
     }
 
+    /**
+     * Re-checks each time the screen changes, until [check] passes or
+     * [timeoutMs] runs out. Settings reports every redraw — the page loading,
+     * Force stop enabling, the dialog opening — as an accessibility event.
+     */
     private suspend fun waitFor(timeoutMs: Long, check: () -> Boolean): Boolean {
         val end = System.currentTimeMillis() + timeoutMs
         while (true) {
             if (runCatching(check).getOrDefault(false)) return true
-            if (System.currentTimeMillis() > end) return false
-            delay(100)
+            val left = end - System.currentTimeMillis()
+            if (left <= 0) return false
+            withTimeoutOrNull(left) { changed.receive() } ?: return runCatching(check).getOrDefault(false)
         }
     }
 
