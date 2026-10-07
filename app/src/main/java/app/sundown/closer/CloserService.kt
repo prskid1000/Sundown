@@ -165,7 +165,7 @@ class CloserService : AccessibilityService() {
                 performGlobalAction(GLOBAL_ACTION_HOME)
                 delay(400)
             }
-            if (Graph.prefs.cover.value) showCover(apps.joinToString { it.label })
+            showCover(apps.joinToString { it.label })
             try {
                 apps.forEach { entries += forceStop(job, it) }
             } finally {

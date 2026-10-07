@@ -12,20 +12,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.sundown.closer.Closer
-import app.sundown.closer.CloserService
 import app.sundown.model.Rule
 import app.sundown.model.RuleKind
 import app.sundown.schedule.RuleEngine
 import app.sundown.schedule.Runner
-import app.sundown.schedule.Scheduler
 import app.sundown.ui.DayStrip
 import app.sundown.ui.IconStack
 import app.sundown.ui.MainViewModel
@@ -39,7 +34,6 @@ import app.sundown.ui.formatMinuteOfDay
 import app.sundown.ui.formatMinutes
 import app.sundown.ui.formatSpan
 import app.sundown.ui.rememberNow
-import app.sundown.ui.rememberResumeCount
 import app.sundown.ui.components.NButton
 import app.sundown.ui.components.NButtonStyle
 import app.sundown.ui.components.NCard
@@ -48,12 +42,8 @@ import app.sundown.ui.components.NProgressBar
 import app.sundown.ui.components.NSwitch
 import app.sundown.ui.components.NTag
 import app.sundown.ui.components.NTagStyle
-import app.sundown.ui.components.PhoneScaffold
-import app.sundown.ui.components.RootToolbar
 import app.sundown.ui.components.SectionKicker
-import app.sundown.ui.components.ToolbarAction
 import app.sundown.ui.components.nClickable
-import app.sundown.ui.theme.NIcons
 import app.sundown.ui.theme.NocturneColors
 import app.sundown.ui.theme.NocturneType
 import app.sundown.ui.theme.Space
@@ -61,21 +51,11 @@ import java.time.ZoneId
 
 private val QUICK_MINUTES = listOf(15, 30, 45, 60, 90)
 
+/** The Schedule tab of [HomeScreen]: missing permissions, next closing, timers and schedules. */
 @Composable
-fun TodayScreen(
-    vm: MainViewModel,
-    bottomBar: @Composable () -> Unit,
-    onEdit: () -> Unit,
-    onSetup: () -> Unit,
-) {
-    val context = LocalContext.current
+fun SchedulePage(vm: MainViewModel, onEdit: () -> Unit, modifier: Modifier = Modifier) {
     val rules by vm.rules.collectAsStateWithLifecycle()
-    val connected by CloserService.connected.collectAsStateWithLifecycle()
     val now = rememberNow()
-    val resumes = rememberResumeCount()
-    val setupOk = remember(resumes, connected) {
-        Closer.isEnabled(context) && Scheduler.canExact(context)
-    }
 
     val zone = ZoneId.systemDefault()
     val next = rules
@@ -84,63 +64,31 @@ fun TodayScreen(
     val timers = rules.filter { it.kind == RuleKind.Timer }
     val schedules = rules.filter { it.kind == RuleKind.Schedule }
 
-    PhoneScaffold(
-        toolbar = {
-            RootToolbar(
-                title = "Sundown",
-                subtitle = {
-                    Text(
-                        if (connected) "closer on · ${rules.count { it.enabled }} active" else "closer off",
-                        style = NocturneType.MonoXs,
-                        color = if (connected) NocturneColors.TextMuted else NocturneColors.Accent400,
-                    )
-                },
-                trailing = {
-                    ToolbarAction(NIcons.Plus, "New schedule", onClick = { vm.newDraft(RuleKind.Schedule); onEdit() })
-                },
-            )
-        },
-        bottomBar = bottomBar,
+    Column(
+        modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Space.s3),
     ) {
-        Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = Space.s3),
-            verticalArrangement = Arrangement.spacedBy(Space.s3),
-        ) {
-            if (!setupOk) {
-                NCard(
-                    modifier = Modifier.fillMaxWidth().nClickable(onClick = onSetup),
-                    ring = NocturneColors.Accent700,
-                    fill = NocturneColors.Accent900,
-                    padding = androidx.compose.foundation.layout.PaddingValues(14.dp),
-                ) {
-                    Text("Finish setup", style = NocturneType.CardTitleLg)
-                    NHelp(
-                        if (!Closer.isEnabled(context)) "Sundown can't close anything until its accessibility service is on."
-                        else "Exact alarms are off, so closings may run a few minutes late.",
-                    )
-                }
-            }
+        PermissionCards()
 
-            Hero(next, now)
+        Hero(next, now)
 
-            SectionHeader("TIMERS", "New timer") { vm.newDraft(RuleKind.Timer); onEdit() }
-            if (timers.isEmpty()) {
-                NHelp("A timer closes apps once, after a set time — a sleep timer for YouTube or Spotify.")
-            }
-            timers.forEach { t ->
-                TimerCard(t, now, vm, onEdit = { vm.editDraft(t); onEdit() })
-            }
-
-            VSpace(Space.s2)
-            SectionHeader("SCHEDULES", "New schedule") { vm.newDraft(RuleKind.Schedule); onEdit() }
-            if (schedules.isEmpty()) {
-                NHelp("A schedule closes apps at the same time on the days you choose — every night at 23:30, say.")
-            }
-            schedules.forEach { r ->
-                ScheduleCard(r, now, onToggle = { vm.setEnabled(r, it) }, onEdit = { vm.editDraft(r); onEdit() })
-            }
-            VSpace(Space.s6)
+        SectionHeader("TIMERS", "New timer") { vm.newDraft(RuleKind.Timer); onEdit() }
+        if (timers.isEmpty()) {
+            NHelp("A timer closes apps once, after a set time — a sleep timer for YouTube or Spotify.")
         }
+        timers.forEach { t ->
+            TimerCard(t, now, vm, onEdit = { vm.editDraft(t); onEdit() })
+        }
+
+        VSpace(Space.s2)
+        SectionHeader("SCHEDULES", "New schedule") { vm.newDraft(RuleKind.Schedule); onEdit() }
+        if (schedules.isEmpty()) {
+            NHelp("A schedule closes apps at the same time on the days you choose — every night at 23:30, say.")
+        }
+        schedules.forEach { r ->
+            ScheduleCard(r, now, onToggle = { vm.setEnabled(r, it) }, onEdit = { vm.editDraft(r); onEdit() })
+        }
+        VSpace(Space.s6)
     }
 }
 

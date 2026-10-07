@@ -71,7 +71,6 @@ object Notifier {
         if (entries.isEmpty()) return
         val bad = entries.filter { !it.outcome.succeeded && it.outcome != Outcome.Deferred }
         val deferred = entries.filter { it.outcome == Outcome.Deferred }
-        if (bad.isEmpty() && !Graph.prefs.resultNotice.value && deferred.isEmpty()) return
 
         val closed = entries.filter { it.outcome == Outcome.ForceStopped || it.outcome == Outcome.ScreenClosed }
         val title = when {

@@ -27,8 +27,7 @@ service does what a person would:
 2. Open its **App info** page, press **Force stop**, then **OK**.
 3. Press Back to return to wherever the phone was.
 
-A dark cover hides the Settings pages while this happens (it can be switched
-off in Setup). The button labels are read from the Settings app's own resources,
+A dark cover hides the Settings pages while this happens. The button labels are read from the Settings app's own resources,
 so this works in any language. An **activity** target is closed with
 Back instead, and only if it is on top at the time: an activity can't be removed
 from an app that keeps running.
@@ -64,10 +63,12 @@ from an app that keeps running.
 ## Setup on a phone
 
 1. Install the APK.
-2. **Setup → Open accessibility settings → Sundown closer → On.** If the switch
+2. On the **Schedule** tab, each missing permission shows as a card with the
+   button that fixes it; the card disappears once it's granted.
+   **Open accessibility settings → Sundown closer → On.** If the switch
    is greyed out with "Restricted setting": App info → ⋮ → *Allow restricted
    settings*, then try again. An `adb install` is exempt from this.
-3. Allow **Alarms & reminders** and **Notifications** from the same screen.
+3. Allow **Alarms & reminders** and **Notifications** from their cards.
 
 ## Build
 

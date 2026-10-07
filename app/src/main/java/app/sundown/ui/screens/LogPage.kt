@@ -28,39 +28,26 @@ import app.sundown.ui.components.NCard
 import app.sundown.ui.components.NHelp
 import app.sundown.ui.components.NTag
 import app.sundown.ui.components.NTagStyle
-import app.sundown.ui.components.PhoneScaffold
-import app.sundown.ui.components.RootToolbar
-import app.sundown.ui.components.ToolbarAction
-import app.sundown.ui.theme.NIcons
 import app.sundown.ui.theme.NocturneColors
 import app.sundown.ui.theme.NocturneType
 import app.sundown.ui.theme.Space
 
+/** The Log tab of [HomeScreen]: one card per closing run, newest first. */
 @Composable
-fun LogScreen(vm: MainViewModel, bottomBar: @Composable () -> Unit) {
+fun LogPage(vm: MainViewModel, modifier: Modifier = Modifier) {
     val log by vm.log.collectAsStateWithLifecycle()
     val runs = log.groupBy { it.runId }.values.toList()
 
-    PhoneScaffold(
-        toolbar = {
-            RootToolbar(
-                title = "Log",
-                subtitle = { Text("${runs.size} runs", style = NocturneType.MonoXs, color = NocturneColors.TextMuted) },
-                trailing = { if (log.isNotEmpty()) ToolbarAction(NIcons.Trash, "Clear log", onClick = { vm.clearLog() }) },
-            )
-        },
-        bottomBar = bottomBar,
+    if (runs.isEmpty()) {
+        NHelp("Every closing is recorded here — including the ones that only partly worked, and why.", modifier = modifier)
+        return
+    }
+    LazyColumn(
+        modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(bottom = Space.s3),
+        verticalArrangement = Arrangement.spacedBy(Space.s3),
     ) {
-        if (runs.isEmpty()) {
-            NHelp("Every closing is recorded here — including the ones that only partly worked, and why.", modifier = Modifier.padding(top = Space.s4))
-        }
-        LazyColumn(
-            Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = Space.s3),
-            verticalArrangement = Arrangement.spacedBy(Space.s3),
-        ) {
-            items(runs, key = { it.first().runId.toString() + it.first().id }) { run -> RunCard(run) }
-        }
+        items(runs, key = { it.first().runId.toString() + it.first().id }) { run -> RunCard(run) }
     }
 }
 
