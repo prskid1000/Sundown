@@ -105,7 +105,7 @@ object Notifier {
                 Notification.BigTextStyle().bigText(
                     "Sundown's accessibility service is off, so it could not press Force stop. " +
                         "Only background processes were stopped, and an app on screen or playing audio is still running. " +
-                        "Turn on Sundown closer in Accessibility settings.",
+                        "Turn on Sundown in Accessibility settings.",
                 ),
             )
             .setContentIntent(fix)

@@ -134,7 +134,7 @@ fun NInput(
                     // Ascii rather than Text: it is the request that stops most
                     // IMEs offering a smart-quote key in the first place.
                     keyboardType = if (code) KeyboardType.Ascii else keyboardType,
-                    autoCorrect = !code,
+                    autoCorrectEnabled = !code,
                     capitalization = KeyboardCapitalization.None,
                 ),
                 modifier = Modifier.fillMaxWidth(),

@@ -65,7 +65,7 @@ fun PermissionCards() {
 
     if (!(a11y && connected)) {
         Card(
-            title = "Turn on Sundown closer",
+            title = "Turn on Sundown in Accessibility",
             status = if (a11y) "On, but not running yet — turn it off and on again" else "Off — nothing can be closed",
             body = "Android gives apps no way to stop another app. Sundown opens its App info page and presses Force stop, " +
                 "exactly as you would, and presses Back to leave an activity you chose.",

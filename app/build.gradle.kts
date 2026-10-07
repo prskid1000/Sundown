@@ -3,7 +3,6 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -18,7 +17,7 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "app.sundown"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "app.sundown"
@@ -60,13 +59,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
     buildFeatures {
         compose = true
         buildConfig = true
         aidl = true   // for the Warden broker interface (force-stop while locked)
     }
 }
+
+kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")

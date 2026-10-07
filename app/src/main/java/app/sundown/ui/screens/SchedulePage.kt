@@ -136,7 +136,7 @@ private fun TimerCard(rule: Rule, now: Long, vm: MainViewModel, onEdit: () -> Un
             Column(Modifier.weight(1f)) {
                 Text(rule.name.ifBlank { Runner.defaultName(rule) }, style = NocturneType.CardTitleLg, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    if (running) "closes at ${formatInstantTime(endsAt!!)}" else formatMinutes(rule.durationMinutes),
+                    if (running) "closes at ${formatInstantTime(endsAt)}" else formatMinutes(rule.durationMinutes),
                     style = NocturneType.MonoXs,
                     color = NocturneColors.TextMuted,
                 )
@@ -145,7 +145,7 @@ private fun TimerCard(rule: Rule, now: Long, vm: MainViewModel, onEdit: () -> Un
         }
         if (running) {
             val total = rule.durationMinutes * 60_000L
-            val left = (endsAt!! - now).coerceAtLeast(0)
+            val left = (endsAt - now).coerceAtLeast(0)
             Text(formatClock(left), style = NocturneType.H2, color = NocturneColors.Accent300)
             NProgressBar(fraction = if (total > 0) 1f - left.toFloat() / total else 1f, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(Space.s2)) {

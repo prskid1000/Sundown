@@ -65,7 +65,7 @@ from an app that keeps running.
 1. Install the APK.
 2. On the **Schedule** tab, each missing permission shows as a card with the
    button that fixes it; the card disappears once it's granted.
-   **Open accessibility settings → Sundown closer → On.** If the switch
+   **Open accessibility settings → Sundown → On.** If the switch
    is greyed out with "Restricted setting": App info → ⋮ → *Allow restricted
    settings*, then try again. An `adb install` is exempt from this.
 3. Allow **Alarms & reminders** and **Notifications** from their cards.
