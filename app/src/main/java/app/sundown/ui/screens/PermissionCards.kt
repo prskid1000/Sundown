@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -29,6 +30,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.sundown.closer.Closer
 import app.sundown.closer.CloserService
+import app.sundown.closer.WardenBridge
 import app.sundown.schedule.Scheduler
 import app.sundown.ui.StatusGlyph
 import app.sundown.ui.rememberResumeCount
@@ -38,11 +40,14 @@ import app.sundown.ui.components.NCard
 import app.sundown.ui.components.NHelp
 import app.sundown.ui.theme.NocturneColors
 import app.sundown.ui.theme.NocturneType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * One card per permission Sundown still needs, each with the button that fixes
  * it. A card disappears once its permission is granted; with all three granted
- * this draws nothing.
+ * this draws nothing. The accessibility card also stays hidden while Warden is
+ * reachable, since closing then goes through Warden instead.
  */
 @Composable
 fun PermissionCards() {
@@ -59,11 +64,16 @@ fun PermissionCards() {
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     }
     val askNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { bump++ }
+    // With Warden reachable, closing goes through it and accessibility isn't
+    // needed. Null until the first check returns, so the card doesn't flash.
+    val warden by produceState<Boolean?>(null, resumes) {
+        value = withContext(Dispatchers.IO) { WardenBridge.available(context) }
+    }
 
     fun open(intent: Intent) = runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
     val appInfo = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
 
-    if (!(a11y && connected)) {
+    if (warden == false && !(a11y && connected)) {
         Card(
             title = "Turn on Sundown in Accessibility",
             status = if (a11y) "On, but not running yet — turn it off and on again" else "Off — nothing can be closed",
